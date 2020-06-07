@@ -11,7 +11,7 @@ docs
 
 venv
 *.log
-*.pyc
+**/*.pyc
 *.pyo
 __pycache__
 .mypy_cache
