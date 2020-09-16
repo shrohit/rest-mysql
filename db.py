@@ -1,12 +1,11 @@
-
-import time
 import datetime
+import decimal
+import time
 
 import pymysql
 
-from .utils.logger import logger
 from .config import Config
-
+from .utils.logger import logger
 
 cfg = Config()
 # map to hold db connections
@@ -22,6 +21,7 @@ def retry_mysql_operation_on_error(operation):
         A mysql operations decorator that handles
         exceptions and retries the operation.
     """
+
     def new_operation(*args, **kwargs):
         """
             New operation function with exception handlers
@@ -49,6 +49,7 @@ def retry_mysql_operation_on_error(operation):
                     db_connections_map.clear()
                 else:
                     raise error
+
     return new_operation
 
 
@@ -73,7 +74,7 @@ def prepare_result(rows):
     for row in rows:
         for column in row:
             value = row[column]
-            if isinstance(value, datetime.datetime):
+            if isinstance(value, (datetime.datetime, decimal.Decimal)):
                 row[column] = str(value)
     result["rows"] = rows
     return result
@@ -82,7 +83,7 @@ def prepare_result(rows):
 @retry_mysql_operation_on_error
 def execute(db, query):
     db_connection = get_db_connection(db)
-    db_connection.ping()    # Will raise exception if connection not up
+    db_connection.ping()  # Will raise exception if connection not up
     db_cursor = db_connection.cursor()
     logger.info(" QUERY: {}".format(query))
     db_cursor.execute(query)
@@ -141,15 +142,15 @@ def insert(db, table, _id, query_args, row_data):
     insert_query = "insert into {tbl}({clms}) values ({clm_values})".format(
         tbl=table,
         clms=(
-            ("%s" % primary_key_column if _id else "") +
-            ("," if _id and row_data else "") +
-            (",".join([column for column in row_data]))
+                ("%s" % primary_key_column if _id else "") +
+                ("," if _id and row_data else "") +
+                (",".join([column for column in row_data]))
         ),
         clm_values=(
-            ("'%s'" % _id if _id is not None else "") +
-            ("," if _id and row_data else "") +
-            (",".join(["'%s'" % row_data[key].replace("'", "''")
-                       for key in row_data]))
+                ("'%s'" % _id if _id is not None else "") +
+                ("," if _id and row_data else "") +
+                (",".join(["'%s'" % row_data[key].replace("'", "''")
+                           for key in row_data]))
         )
     )
     execute(db, insert_query)
